@@ -5,7 +5,10 @@ metadata:
   namespace: argocd
 spec:
   generators:
-    - clusters: {}
+    - clusters:
+        selector:
+          matchExpressions:
+            - {key: 'cert-manager-version', operator: Exists}
   template:
     metadata:
       name: cert-manager-{{name}}
@@ -13,7 +16,7 @@ spec:
       project: default
       source:
         repoURL: https://charts.jetstack.io
-        targetRevision: '{{metadata.annotations.cert-manager-version}}'
+        targetRevision: '{{metadata.labels.cert-manager-version}}'
         chart: cert-manager
         helm:
           valuesObject:
