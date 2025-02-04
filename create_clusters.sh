@@ -65,9 +65,9 @@ echo "ArgoCD installation complete on the control-plane cluster."
 # Generate cluster secrets for ArgoCD
 echo "Generating Argo CD cluster secrets..."
 for cluster in "${clusters[@]}"; do
-  if [[ "$cluster" == "control-plane" ]]; then
-    continue  # Skip control-plane, no need to register itself
-  fi
+  #if [[ "$cluster" == "control-plane" ]]; then
+  #  continue  # Skip control-plane, no need to register itself
+  #fi
 
   KUBECONFIG_FILE="${CONFIG_DIR}/${cluster}-kubeconfig"
   CLUSTER_NAME="${cluster}"
