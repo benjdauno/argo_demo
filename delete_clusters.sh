@@ -25,5 +25,10 @@ if [[ -d "${CONFIG_DIR}" ]]; then
   rm -rf "${CONFIG_DIR}"
   echo "Removed the kubeconfig directory: ${CONFIG_DIR}"
 fi
+# Remove cluster secrets from the local machine.
+if [[ -d "./cluster-secrets" ]]; then
+  rm -rf "./cluster-secrets"
+  echo "Removed the cluster-secrets directory."
+fi
 
 echo "All clusters have been deleted."

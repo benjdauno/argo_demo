@@ -1,17 +1,12 @@
 #!/bin/bash
-# filepath: /Users/benjamin.daunoravicius/workspace/argo_demo/create_clusters.sh
-
 set -euo pipefail
 
 # Define the list of clusters.
 clusters=(
   "control-plane"
   "dev"
-  "staging1"
-  #"staging2"
-  "prod-us1"
-  #"prod-us2"
-  #"prod-eu"
+  "staging"
+  "prod-us"
 )
 
 # Define directories for kubeconfig files.
@@ -32,42 +27,50 @@ for cluster in "${clusters[@]}"; do
   fi
 
   echo "Creating kind cluster: ${cluster}"
-  kind create cluster --name "${cluster}"
+  kind create cluster --name "${cluster}" --kubeconfig "${CONFIG_DIR}/${cluster}-kubeconfig"
   
-  # Extract the kubeconfig for the created cluster.
-  echo "Extracting kubeconfig for cluster: ${cluster}"
-  kind get kubeconfig --name "${cluster}" > "${CONFIG_DIR}/${cluster}-kubeconfig"
 
   echo "Cluster ${cluster} created and kubeconfig saved to ${CONFIG_DIR}/${cluster}-kubeconfig."
 done
 
 echo "All clusters have been created. The kubeconfig files are available in the '${CONFIG_DIR}' directory."
 
-# Merge all kubeconfig files into a main kubeconfig file
 echo "Merging kubeconfig files into main kubeconfig..."
 KUBECONFIGS=()
 for cluster in "${clusters[@]}"; do
-  KUBECONFIGS+=("${CONFIG_DIR}/${cluster}-kubeconfig")
+  KUBECONFIG_FILE="${CONFIG_DIR}/${cluster}-kubeconfig"
+  if [[ -f "${KUBECONFIG_FILE}" ]]; then
+    KUBECONFIGS+=("${KUBECONFIG_FILE}")
+  else
+    echo "Warning: Kubeconfig file ${KUBECONFIG_FILE} not found. Skipping."
+  fi
 done
 
-KUBECONFIG=$(IFS=:; echo "${KUBECONFIGS[*]}") kubectl config view --merge --flatten > "${MAIN_KUBECONFIG}"
+
+if [[ ${#KUBECONFIGS[@]} -eq 0 ]]; then
+  echo "Error: No kubeconfig files found for merging."
+  exit 1
+fi
+
+export KUBECONFIG=$(IFS=:; echo "${KUBECONFIGS[*]}")
+kubectl config view --merge --flatten > "${MAIN_KUBECONFIG}"
 export KUBECONFIG="${MAIN_KUBECONFIG}"
+
 
 echo "Main kubeconfig created at ${MAIN_KUBECONFIG}"
 
 # Install ArgoCD on the control-plane cluster
 echo "Installing Argo CD on control-plane cluster..."
-kubectl --kubeconfig="${CONFIG_DIR}/control-plane-kubeconfig" create namespace ${ARGOCD_NAMESPACE} || true
-helm upgrade -i argocd argo/argo-cd -n ${ARGOCD_NAMESPACE} --kubeconfig="${CONFIG_DIR}/control-plane-kubeconfig" || true
+export KUBECONFIG="${MAIN_KUBECONFIG}"
+kubectl config use-context kind-control-plane
+kubectl create namespace ${ARGOCD_NAMESPACE} || true
+helm upgrade -i argocd argo/argo-cd -n ${ARGOCD_NAMESPACE} || true
 
 echo "ArgoCD installation complete on the control-plane cluster."
 
 # Generate cluster secrets for ArgoCD
 echo "Generating Argo CD cluster secrets..."
 for cluster in "${clusters[@]}"; do
-  #if [[ "$cluster" == "control-plane" ]]; then
-  #  continue  # Skip control-plane, no need to register itself
-  #fi
 
   KUBECONFIG_FILE="${CONFIG_DIR}/${cluster}-kubeconfig"
   CLUSTER_NAME="${cluster}"
