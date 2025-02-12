@@ -19,7 +19,7 @@ spec:
         targetRevision: '{{metadata.labels.cert-manager-version}}'
         chart: cert-manager
         helm:
-          valuesFiles:
+          valueFiles:
             - configuration/cert-manager/default-values.yaml
       destination:
         server: '{{server}}'
