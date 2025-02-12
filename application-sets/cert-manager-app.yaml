@@ -19,8 +19,8 @@ spec:
         targetRevision: '{{metadata.labels.cert-manager-version}}'
         chart: cert-manager
         helm:
-          valuesObject:
-            installCRDs: true
+          valuesFiles:
+            - configuration/cert-manager/default-values.yaml
       destination:
         server: '{{server}}'
         namespace: cert-manager
