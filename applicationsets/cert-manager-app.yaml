@@ -14,13 +14,16 @@ spec:
       name: cert-manager-{{name}}
     spec:
       project: default
-      source:
-        repoURL: https://charts.jetstack.io
-        targetRevision: '{{metadata.labels.cert-manager-version}}'
-        chart: cert-manager
-        helm:
-          valueFiles:
-            - configuration/cert-manager/default-values.yaml
+      sources:
+        - repoURL: https://charts.jetstack.io
+          targetRevision: '{{metadata.labels.cert-manager-version}}'
+          chart: cert-manager
+          helm:
+            valueFiles:
+              - $values-source/configuration/cert-manager/default-values.yaml
+        - repoURL: 'https://github.com/benjdauno/argo_demo'
+          targetRevision: main
+          ref: values-source
       destination:
         server: '{{server}}'
         namespace: cert-manager
