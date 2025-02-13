@@ -1,0 +1,36 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: dummy-app
+  namespace: argocd
+spec:
+  goTemplate: true
+  generators:
+    - clusters:
+        selector:
+          matchExpressions:
+            - {key: 'dummy.app.version', operator: Exists}
+  template:
+    metadata:
+      name: dummy-app-{{.name}}
+    spec:
+      project: default
+      sources:
+        - repoURL: 'https://github.com/benjdauno/argo_demo'
+          targetRevision: '{{ default "main" (index .metadata.labels "dummy.app.version") }}'
+          path: affirm-made-charts/dummy-chart
+          helm:
+            valueFiles:
+              - /configuration/dummy-app/default-values.yaml
+              - /configuration/dummy-app/{{ index .metadata.labels "region" }}-values.yaml
+              - /configuration/dummy-app/{{ index .metadata.labels "environment" }}-values.yaml
+            ignoreMissingValueFiles: true
+      destination:
+        server: '{{.server}}'
+        namespace: dummy-app
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+        - CreateNamespace=true

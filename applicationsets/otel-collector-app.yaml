@@ -1,0 +1,39 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: otel-collector
+  namespace: argocd
+spec:
+  goTemplate: true
+  generators:
+    - clusters:
+        selector:
+          matchExpressions:
+            - {key: 'otelcollector.version', operator: Exists}
+  template:
+    metadata:
+      name: otel-collector-{{.name}}
+    spec:
+      project: default
+      sources:
+        - repoURL: https://open-telemetry.github.io/opentelemetry-helm-charts
+          targetRevision: '{{ index .metadata.labels "otelcollector.version"}}'
+          chart: opentelemetry-collector
+          helm:
+            valueFiles:
+              - $values-source/configuration/otel-collector/default-values.yaml
+              - $values-source/configuration/otel-collector/{{ index .metadata.labels "region" }}-values.yaml
+              - $values-source/configuration/otel-collector/{{ index .metadata.labels "environment" }}-values.yaml
+            ignoreMissingValueFiles: true
+        - repoURL: 'https://github.com/benjdauno/argo_demo'
+          targetRevision: main
+          ref: values-source
+      destination:
+        server: '{{.server}}'
+        namespace: opentelemetry
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+        - CreateNamespace=true
